@@ -169,6 +169,7 @@ function calcularAmigo(amigo) {
       const cuotaFinal = aplicarRedondeo(cuotaBase, appState.config.modoRedondeo);
       sumaCalculada += cuotaFinal;
       desglose.push({
+        id: srv.id,
         nombre: srv.nombre,
         icono: srv.icono,
         monto: cuotaFinal
@@ -411,7 +412,7 @@ function renderAmigos() {
 
     // Pills de servicios
     const pillsHtml = calc.desglose.map(d => `
-      <span class="service-pill" title="${formatARS(d.monto)}">
+      <span class="service-pill brand-${d.id}" title="${formatARS(d.monto)}">
         <span>${d.icono}</span> ${d.nombre}
       </span>
     `).join('');
@@ -562,9 +563,11 @@ function renderModoPase(token) {
   const alias = appState.config.aliasCobro;
 
   let itemsHtml = calc.desglose.map(item => `
-    <div class="pase-item-row">
-      <span>${item.icono} ${item.nombre}</span>
-      <b>${formatARS(item.monto)}</b>
+    <div class="pase-item-row" style="align-items:center;">
+      <span class="service-pill brand-${item.id}" style="font-size:0.8rem;padding:0.25rem 0.65rem;">
+        ${item.icono} ${item.nombre}
+      </span>
+      <b style="font-size:1rem;color:#f8fafc;font-variant-numeric:tabular-nums;">${formatARS(item.monto)}</b>
     </div>
   `).join('');
 
