@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Abonos Streaming - Gestor de Suscripciones</title>
+  <link rel="stylesheet" href="styles.css">
+  <!-- Configuración PWA (Instalable) -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#6366f1">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Abonos">
+  <link rel="apple-touch-icon" href="icon.svg">
+</head>
+<body>
+
+  <!-- ======================================================= -->
+  <!-- VISTA ADMINISTRADOR (JUAN)                              -->
+  <!-- ======================================================= -->
+  <div id="admin-view" class="container">
+    <!-- Header e Identidad del Negocio -->
+    <header class="app-header">
+      <div class="brand-wrapper">
+        <div id="header-logo" class="business-logo">🎬</div>
+        <div class="brand-info">
+          <h1 id="header-title">Abonos Streaming Juan</h1>
+          <div class="brand-subtitle">
+            Ciclo actual: <b id="current-month-label" style="color:#fff;">Noviembre 2026</b>
+          </div>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button id="btn-install-app" class="btn btn-success btn-sm" style="display:none;" title="Instalar como App en celular o PC">
+          📲 Instalar App
+        </button>
+        <button id="btn-open-servicios" class="btn btn-secondary btn-sm" title="Editar servicios y precios">
+          🍿 Tarifas y Servicios
+        </button>
+        <button id="btn-open-nuevo-amigo" class="btn btn-primary btn-sm" title="Sumar un nuevo amigo al grupo">
+          ➕ Nuevo Amigo
+        </button>
+        <button id="btn-open-identidad" class="btn btn-secondary btn-sm" title="Personalizar logo y negocio">
+          ⚙️ Identidad
+        </button>
+        <button id="btn-export-json" class="btn btn-secondary btn-sm" title="Descargar copia de seguridad">
+          💾 Exportar
+        </button>
+        <button id="btn-import-trigger" class="btn btn-secondary btn-sm" title="Restaurar copia de seguridad">
+          📥 Importar
+        </button>
+        <input type="file" id="file-import-json" accept=".json" style="display:none;">
+      </div>
+    </header>
+
+    <!-- Dashboard de Métricas Financieras -->
+    <section class="metrics-grid">
+      <div class="metric-card tarjeta">
+        <span class="metric-label">Gasto Total Tarjetas</span>
+        <span class="metric-value" id="metric-tarjetas">$ 0,00</span>
+        <span class="metric-sub">Lo que te cobran tus resúmenes</span>
+      </div>
+
+      <div class="metric-card cobrar">
+        <span class="metric-label">Total a Cobrar</span>
+        <span class="metric-value" id="metric-cobrar">$ 0,00</span>
+        <span class="metric-sub">Suma de cuotas de tus amigos</span>
+      </div>
+
+      <div class="metric-card cobrado">
+        <span class="metric-label">Cobrado Hasta Hoy</span>
+        <span class="metric-value" id="metric-cobrado">$ 0,00</span>
+        <span class="metric-sub">Transferencias ya recibidas</span>
+      </div>
+
+      <div class="metric-card juan">
+        <span class="metric-label">Tu Costo Neto (Juan)</span>
+        <span class="metric-value" id="metric-juan">$ 0,00</span>
+        <span class="metric-sub">Lo que ponés vos por usar todo</span>
+      </div>
+    </section>
+
+    <!-- Toolbar de Filtros y Configuración Rápida -->
+    <div class="toolbar">
+      <div class="filter-group">
+        <button id="filter-todos" class="filter-btn active">Todos los Amigos</button>
+        <button id="filter-deudores" class="filter-btn">⚠️ Solo Pendientes</button>
+      </div>
+
+      <div class="toolbar-controls">
+        <div style="display:flex;align-items:center;gap:0.4rem;">
+          <label for="select-redondeo" style="font-size:0.8rem;color:var(--text-muted);font-weight:600;">Redondeo:</label>
+          <select id="select-redondeo" class="form-control" style="padding:0.35rem 0.6rem;font-size:0.85rem;">
+            <option value="exacto">Exacto con centavos</option>
+            <option value="entero">Sin centavos (entero)</option>
+            <option value="centena">A la centena ($100)</option>
+            <option value="mil">Al mil ($1.000)</option>
+          </select>
+        </div>
+
+        <button id="btn-reset-mes" class="btn btn-secondary btn-sm" title="Reiniciar mes para nuevo cobro (5 al 10)">
+          🔄 Nuevo Mes de Cobro
+        </button>
+      </div>
+    </div>
+
+    <!-- Grilla de Amigos -->
+    <main class="friends-grid" id="friends-container"></main>
+  </div>
+
+  <!-- ======================================================= -->
+  <!-- VISTA CLIENTE: PASE DIGITAL PÚBLICO                    -->
+  <!-- ======================================================= -->
+  <div id="pase-view" style="display:none;"></div>
+
+  <!-- ======================================================= -->
+  <!-- MODAL: COBRO QR ROBUSTO                                -->
+  <!-- ======================================================= -->
+  <div id="modal-qr" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="qr-modal-title">Cobro QR</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="text-align:center;">
+          <div style="font-size:0.9rem;color:var(--text-muted);">Monto a transferir:</div>
+          <div id="qr-modal-amount" style="font-size:2rem;font-weight:800;color:#60a5fa;margin-bottom:0.75rem;">$ 0,00</div>
+        </div>
+
+        <div class="qr-container" id="qr-render-box"></div>
+
+        <div class="qr-alias-box">
+          <div style="font-size:0.8rem;color:var(--text-muted);">Alias Mercado Pago / Bancario:</div>
+          <div class="qr-alias-text" id="qr-modal-alias">jmg2011</div>
+          <button id="btn-copy-alias" class="btn btn-secondary btn-sm" style="margin-top:0.4rem;">
+            📋 Copiar Alias
+          </button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="btn-view-pass" class="btn btn-secondary btn-sm">
+          🔗 Abrir Pase Digital
+        </button>
+        <button class="btn btn-primary btn-sm btn-modal-cancel">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================= -->
+  <!-- MODAL: CRUD DE TARIFAS Y SERVICIOS                     -->
+  <!-- ======================================================= -->
+  <div id="modal-servicios" class="modal-overlay">
+    <div class="modal-content" style="max-width:620px;">
+      <div class="modal-header">
+        <h3>Tarifas y Servicios Editables</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:0.85rem;color:var(--text-muted);">
+          Modificá el precio total en ARS $ de cada abono según te llegue en el resumen de tu tarjeta. La app recalcula automáticamente la cuota por persona.
+        </p>
+
+        <div id="services-crud-list" style="display:flex;flex-direction:column;gap:0.75rem;"></div>
+
+        <button id="btn-add-service" class="btn btn-secondary" style="margin-top:0.5rem;">
+          ➕ Agregar Nuevo Servicio (Netflix, etc.)
+        </button>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary btn-modal-cancel">Listo</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================= -->
+  <!-- MODAL: GESTIÓN DE AMIGO                                -->
+  <!-- ======================================================= -->
+  <div id="modal-amigo" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modal-amigo-title">Datos del Amigo</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <form id="form-amigo">
+        <div class="modal-body">
+          <input type="hidden" id="edit-friend-id">
+          
+          <div class="form-group">
+            <label for="edit-friend-name">Nombre y Apellido:</label>
+            <input type="text" id="edit-friend-name" class="form-control" required placeholder="Ej. Facundo">
+          </div>
+
+          <div class="form-group">
+            <label for="edit-friend-phone">Teléfono Celular (con característica):</label>
+            <input type="text" id="edit-friend-phone" class="form-control" required placeholder="Ej. 3573400802">
+          </div>
+
+          <div class="form-group">
+            <label>Servicios Asignados:</label>
+            <div id="edit-friend-services" class="checkbox-group"></div>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-friend-custom-price">
+              Precio Personalizado en ARS $ (Opcional):
+            </label>
+            <input type="number" step="0.01" id="edit-friend-custom-price" class="form-control" placeholder="Dejar vacío para cálculo automático">
+            <small style="color:var(--text-muted);font-size:0.75rem;">
+              Sobreescribe el cálculo automático para este amigo (como los $ 4.300 de Luis y Noelia).
+            </small>
+          </div>
+        </div>
+        <div class="modal-footer" style="justify-content:space-between;">
+          <button type="button" id="btn-delete-friend" class="btn btn-danger-outline btn-sm">
+            🗑️ Eliminar Amigo
+          </button>
+          <div style="display:flex;gap:0.5rem;">
+            <button type="button" class="btn btn-secondary btn-sm btn-modal-cancel">Cancelar</button>
+            <button type="submit" class="btn btn-primary btn-sm">Guardar</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ======================================================= -->
+  <!-- MODAL: IDENTIDAD DEL NEGOCIO                           -->
+  <!-- ======================================================= -->
+  <div id="modal-identidad" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Identidad del Negocio</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <form id="form-identidad">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="config-negocio-nombre">Nombre del Grupo / Negocio:</label>
+            <input type="text" id="config-negocio-nombre" class="form-control" required>
+          </div>
+
+          <div class="form-group">
+            <label for="config-negocio-alias">Alias Mercado Pago / Bancario:</label>
+            <input type="text" id="config-negocio-alias" class="form-control" required>
+          </div>
+
+          <div class="form-group">
+            <label for="config-negocio-titular">Titular de la Cuenta:</label>
+            <input type="text" id="config-negocio-titular" class="form-control" required>
+          </div>
+
+          <div class="form-group">
+            <label for="config-logo-file">Subir Logo (desde PC o Celular):</label>
+            <input type="file" id="config-logo-file" class="form-control" accept="image/*">
+            <small style="color:var(--text-muted);font-size:0.75rem;">
+              Se comprime automáticamente y se guarda en tu navegador.
+            </small>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm btn-modal-cancel">Cancelar</button>
+          <button type="submit" class="btn btn-primary btn-sm">Guardar Cambios</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notificaciones -->
+  <div id="app-toast" class="toast"></div>
+
+  <!-- Script principal -->
+  <script src="app.js"></script>
+</body>
+</html>

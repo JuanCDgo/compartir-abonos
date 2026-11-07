@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1" />
+      <stop offset="50%" stop-color="#8b5cf6" />
+      <stop offset="100%" stop-color="#d946ef" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#000000" flood-opacity="0.4" />
+    </filter>
+  </defs>
+  <!-- Background rounded squircle -->
+  <rect width="512" height="512" rx="112" fill="#0f1117" />
+  <rect x="24" y="24" width="464" height="464" rx="96" fill="#181c24" stroke="#2d3748" stroke-width="6" />
+  
+  <!-- Glowing icon element -->
+  <g filter="url(#shadow)">
+    <!-- Play Badge / Ticket icon -->
+    <rect x="100" y="120" width="312" height="272" rx="44" fill="url(#grad)" />
+    <!-- Screen cutout -->
+    <rect x="124" y="144" width="264" height="170" rx="24" fill="#0f1117" opacity="0.45" />
+    <!-- Play Triangle -->
+    <polygon points="230,185 310,230 230,275" fill="#ffffff" />
+    <!-- Streaming Waves / Dots -->
+    <circle cx="160" cy="350" r="14" fill="#ffffff" />
+    <circle cx="210" cy="350" r="14" fill="#ffffff" opacity="0.8" />
+    <circle cx="260" cy="350" r="14" fill="#ffffff" opacity="0.6" />
+    <!-- Dollar currency badge -->
+    <circle cx="345" cy="345" r="28" fill="#10b981" />
+    <text x="345" y="357" font-family="system-ui, sans-serif" font-size="34" font-weight="900" fill="#ffffff" text-anchor="middle">$</text>
+  </g>
+</svg>
