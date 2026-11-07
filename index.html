@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Abonos Streaming - Gestor de Suscripciones</title>
-  <link rel="stylesheet" href="styles.css?v=2.3">
+  <link rel="stylesheet" href="styles.css?v=2.4">
   <!-- Configuración PWA (Instalable) -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#6366f1">
@@ -218,6 +218,16 @@
               Sobreescribe el cálculo automático para este amigo (como los $ 4.300 de Luis y Noelia).
             </small>
           </div>
+
+          <div class="form-group">
+            <label for="edit-friend-pagador">¿Quién se hace cargo del pago?</label>
+            <select id="edit-friend-pagador" class="form-control">
+              <option value="">Paga él mismo (por defecto)</option>
+            </select>
+            <small style="color:var(--text-muted);font-size:0.75rem;">
+              Para hermanos o parejas: seleccioná a quién le transferís el cobro unificado (ej. Facundo paga por Jorge).
+            </small>
+          </div>
         </div>
         <div class="modal-footer" style="justify-content:space-between;">
           <button type="button" id="btn-delete-friend" class="btn btn-danger-outline btn-sm">
@@ -278,6 +288,6 @@
   <div id="app-toast" class="toast"></div>
 
   <!-- Script principal -->
-  <script src="app.js?v=2.3"></script>
+  <script src="app.js?v=2.4"></script>
 </body>
 </html>

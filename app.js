@@ -33,6 +33,7 @@ const DEFAULT_STATE = {
       servicios: ['disney', 'youtube', 'max'],
       precioPersonalizado: null,
       pagado: false,
+      pagadorId: null,
       token: 'facundo-7a2'
     },
     {
@@ -42,6 +43,7 @@ const DEFAULT_STATE = {
       servicios: ['disney', 'paramount', 'max'],
       precioPersonalizado: null,
       pagado: false,
+      pagadorId: 'facundo',
       token: 'jorge-9b4'
     },
     {
@@ -113,10 +115,16 @@ function loadState() {
       return initial;
     }
     const parsed = JSON.parse(raw);
+    const loadedAmigos = (parsed.amigos && parsed.amigos.length > 0) ? parsed.amigos : DEFAULT_STATE.amigos;
+    // Migración automática: vincular a Jorge con Facundo si todavía no tiene pagadorId
+    const jorge = loadedAmigos.find(a => a.id === 'jorge');
+    if (jorge && (jorge.pagadorId === undefined || jorge.pagadorId === null)) {
+      jorge.pagadorId = 'facundo';
+    }
     return {
       config: { ...DEFAULT_STATE.config, ...(parsed.config || {}) },
       servicios: (parsed.servicios && parsed.servicios.length > 0) ? parsed.servicios : DEFAULT_STATE.servicios,
-      amigos: (parsed.amigos && parsed.amigos.length > 0) ? parsed.amigos : DEFAULT_STATE.amigos
+      amigos: loadedAmigos
     };
   } catch (e) {
     console.error('Error cargando estado:', e);
@@ -165,7 +173,7 @@ function getCuotaServicio(servicioId) {
   return srv.precio / usuariosTotales;
 }
 
-// Calcula el total mensual de un amigo (con desglose)
+// Calcula el total mensual de un amigo (con desglose y personas a cargo)
 function calcularAmigo(amigo) {
   const desglose = [];
   let sumaCalculada = 0;
@@ -194,12 +202,53 @@ function calcularAmigo(amigo) {
     }
   });
 
-  const montoFinal = tienePersonalizado ? amigo.precioPersonalizado : sumaCalculada;
+  const montoPropio = tienePersonalizado ? amigo.precioPersonalizado : sumaCalculada;
+
+  // Personas a cargo (ej. Jorge a cargo de Facundo)
+  const dependientes = appState.amigos.filter(a => a.pagadorId === amigo.id);
+  const personasACargo = [];
+  let sumaDependientes = 0;
+
+  dependientes.forEach(dep => {
+    const depDesglose = [];
+    let depSuma = 0;
+    const depTienePersonalizado = dep.precioPersonalizado !== null && dep.precioPersonalizado !== undefined && dep.precioPersonalizado > 0;
+    dep.servicios.forEach(srvId => {
+      const srv = appState.servicios.find(s => s.id === srvId);
+      if (srv) {
+        let cuotaFinal;
+        if (depTienePersonalizado && dep.servicios.length === 1) {
+          cuotaFinal = dep.precioPersonalizado;
+        } else {
+          const cuotaBase = getCuotaServicio(srvId);
+          cuotaFinal = aplicarRedondeo(cuotaBase, appState.config.modoRedondeo);
+        }
+        depSuma += cuotaFinal;
+        depDesglose.push({
+          id: srv.id,
+          nombre: srv.nombre,
+          icono: srv.icono,
+          monto: cuotaFinal
+        });
+      }
+    });
+    const depMonto = depTienePersonalizado ? dep.precioPersonalizado : depSuma;
+    sumaDependientes += depMonto;
+    personasACargo.push({
+      amigo: dep,
+      monto: depMonto,
+      desglose: depDesglose
+    });
+  });
+
+  const montoFinal = montoPropio + sumaDependientes;
 
   return {
     montoFinal,
+    montoPropio,
     tienePersonalizado,
-    desglose
+    desglose,
+    personasACargo
   };
 }
 
@@ -224,18 +273,41 @@ function generarMensajeWhatsApp(amigo) {
   const paseUrl = `${baseUrl}?pase=${amigo.token || amigo.id}`;
   const linkMercadoPago = `https://link.mercadopago.com.ar/${alias}`;
 
-  // Formato 100% limpio sin emojis de 4 bytes para evitar rombos corruptos
   let texto = `¡Hola ${amigo.nombre}!\n`;
-  texto += `Te paso el resumen de streaming de *${mes}*:\n\n`;
 
-  calculo.desglose.forEach(item => {
-    texto += `• ${item.nombre}: ${formatARS(item.monto)}\n`;
-  });
+  // Si tiene personas a cargo (ej. Facundo paga por Jorge)
+  if (calculo.personasACargo && calculo.personasACargo.length > 0) {
+    const nombres = [amigo.nombre, ...calculo.personasACargo.map(p => p.amigo.nombre)].join(' + ');
+    texto += `Te paso el resumen de streaming de *${mes}* (${nombres}):\n\n`;
 
-  texto += `\n*Total a transferir: ${formatARS(calculo.montoFinal)}*\n\n`;
+    // Desglose del titular (Facundo)
+    texto += `👤 ${amigo.nombre}:\n`;
+    calculo.desglose.forEach(item => {
+      texto += `• ${item.nombre}: ${formatARS(item.monto)}\n`;
+    });
+    texto += `Subtotal ${amigo.nombre}: ${formatARS(calculo.montoPropio)}\n\n`;
+
+    // Desglose de cada persona a cargo (Jorge)
+    calculo.personasACargo.forEach(p => {
+      texto += `👤 ${p.amigo.nombre}:\n`;
+      p.desglose.forEach(item => {
+        texto += `• ${item.nombre}: ${formatARS(item.monto)}\n`;
+      });
+      texto += `Subtotal ${p.amigo.nombre}: ${formatARS(p.monto)}\n\n`;
+    });
+
+    texto += `*Total a transferir (ambos): ${formatARS(calculo.montoFinal)}*\n\n`;
+  } else {
+    texto += `Te paso el resumen de streaming de *${mes}*:\n\n`;
+    calculo.desglose.forEach(item => {
+      texto += `• ${item.nombre}: ${formatARS(item.monto)}\n`;
+    });
+    texto += `\n*Total a transferir: ${formatARS(calculo.montoFinal)}*\n\n`;
+  }
+
   texto += `👉 Pagar directo con Mercado Pago:\n${linkMercadoPago}\n\n`;
   texto += `(O transferir al Alias: *${alias}*)\n\n`;
-  texto += `📱 Ver tu Pase Digital y QR:\n${paseUrl}\n\n`;
+  texto += `📱 Ver Pase Digital y QR:\n${paseUrl}\n\n`;
   texto += `¡Muchas gracias!`;
 
   return encodeURIComponent(texto);
@@ -382,10 +454,13 @@ function renderApp() {
   let totalCobrado = 0;
 
   appState.amigos.forEach(a => {
-    const calc = calcularAmigo(a);
-    totalACobrar += calc.montoFinal;
-    if (a.pagado) {
-      totalCobrado += calc.montoFinal;
+    // Solo sumamos a los que no tienen pagador externo (para no duplicar cuando Facundo paga por Jorge)
+    if (!a.pagadorId) {
+      const calc = calcularAmigo(a);
+      totalACobrar += calc.montoFinal;
+      if (a.pagado) {
+        totalCobrado += calc.montoFinal;
+      }
     }
   });
 
@@ -446,6 +521,29 @@ function renderAmigos() {
     const telLimpio = limpiarTelefonoArg(amigo.telefono);
     const waUrl = `https://wa.me/${telLimpio}?text=${waMsg}`;
 
+    const pagador = amigo.pagadorId ? appState.amigos.find(p => p.id === amigo.pagadorId) : null;
+    const tieneACargo = calc.personasACargo && calc.personasACargo.length > 0;
+    const nombresACargo = tieneACargo ? calc.personasACargo.map(p => p.amigo.nombre).join(', ') : '';
+
+    let tagHermano = '';
+    if (pagador) {
+      tagHermano = `<div style="font-size:0.75rem;color:#a5b4fc;margin-top:0.2rem;font-weight:700;">🔗 Cobro unificado en ${pagador.nombre}</div>`;
+    } else if (tieneACargo) {
+      tagHermano = `<div style="font-size:0.75rem;color:#c084fc;margin-top:0.2rem;font-weight:700;">🔗 Paga por: ${nombresACargo}</div>`;
+    }
+
+    const labelCuota = tieneACargo ? `Total (${amigo.nombre} + ${nombresACargo}):` : (pagador ? `Cuota de ${amigo.nombre}:` : `Cuota mensual:`);
+
+    const botonWa = pagador ? `
+      <button class="btn btn-secondary btn-sm" disabled style="opacity:0.5;cursor:not-allowed;" title="El cobro se envía directamente a ${pagador.nombre}">
+        💬 Paga ${pagador.nombre}
+      </button>
+    ` : `
+      <a href="${waUrl}" target="_blank" class="btn btn-secondary btn-sm" title="Avisar por WhatsApp">
+        💬 WhatsApp
+      </a>
+    `;
+
     card.innerHTML = `
       <div>
         <div class="friend-card-header">
@@ -454,6 +552,7 @@ function renderAmigos() {
             <div>
               <div class="friend-name">${amigo.nombre}</div>
               <div class="friend-phone">📱 ${amigo.telefono}</div>
+              ${tagHermano}
             </div>
           </div>
           ${badgeDeudaHtml}
@@ -466,7 +565,7 @@ function renderAmigos() {
 
       <div class="friend-card-footer">
         <div class="card-amount-row">
-          <span class="amount-label">Cuota mensual:</span>
+          <span class="amount-label">${labelCuota}</span>
           <div>
             <span class="amount-value">${formatARS(calc.montoFinal)}</span>
             ${calc.tienePersonalizado ? '<span class="amount-custom-badge">Personalizado</span>' : ''}
@@ -474,9 +573,7 @@ function renderAmigos() {
         </div>
 
         <div class="friend-actions">
-          <a href="${waUrl}" target="_blank" class="btn btn-secondary btn-sm" title="Avisar por WhatsApp">
-            💬 WhatsApp
-          </a>
+          ${botonWa}
           <button class="btn btn-primary btn-sm btn-qr" data-id="${amigo.id}">
             📱 Cobro QR
           </button>
@@ -512,10 +609,27 @@ function renderAmigos() {
 function togglePagoAmigo(amigoId) {
   const amigo = appState.amigos.find(a => a.id === amigoId);
   if (!amigo) return;
-  amigo.pagado = !amigo.pagado;
+  const nuevoEstado = !amigo.pagado;
+  amigo.pagado = nuevoEstado;
+
+  // Si este amigo paga por otros (ej. Facundo paga por Jorge), sincronizar dependientes
+  appState.amigos.forEach(a => {
+    if (a.pagadorId === amigo.id) {
+      a.pagado = nuevoEstado;
+    }
+  });
+
+  // Si este amigo tiene un pagador (ej. Jorge), sincronizar con su pagador
+  if (amigo.pagadorId) {
+    const pagador = appState.amigos.find(a => a.id === amigo.pagadorId);
+    if (pagador) {
+      pagador.pagado = nuevoEstado;
+    }
+  }
+
   saveState();
   renderApp();
-  showToast(amigo.pagado ? `✓ Pago de ${amigo.nombre} registrado.` : `⚠️ ${amigo.nombre} marcado con deuda.`);
+  showToast(nuevoEstado ? `✓ Pago de ${amigo.nombre} registrado.` : `⚠️ ${amigo.nombre} marcado con deuda.`);
 }
 
 // ==========================================
@@ -585,14 +699,42 @@ function renderModoPase(token) {
   const calc = calcularAmigo(amigo);
   const alias = appState.config.aliasCobro;
 
-  let itemsHtml = calc.desglose.map(item => `
-    <div class="pase-item-row" style="align-items:center;">
-      <span class="service-pill brand-${item.id}" style="font-size:0.8rem;padding:0.25rem 0.65rem;">
-        ${item.icono} ${item.nombre}
-      </span>
-      <b style="font-size:1rem;color:#f8fafc;font-variant-numeric:tabular-nums;">${formatARS(item.monto)}</b>
-    </div>
-  `).join('');
+  let itemsHtml = '';
+  if (calc.personasACargo && calc.personasACargo.length > 0) {
+    itemsHtml += `<div style="font-weight:700;margin-bottom:0.4rem;color:#cbd5e1;">Abonos de ${amigo.nombre}:</div>`;
+    itemsHtml += calc.desglose.map(item => `
+      <div class="pase-item-row" style="align-items:center;">
+        <span class="service-pill brand-${item.id}" style="font-size:0.8rem;padding:0.25rem 0.65rem;">
+          ${item.icono} ${item.nombre}
+        </span>
+        <b style="font-size:1rem;color:#f8fafc;font-variant-numeric:tabular-nums;">${formatARS(item.monto)}</b>
+      </div>
+    `).join('');
+    itemsHtml += `<div style="font-size:0.85rem;color:#94a3b8;margin:0.2rem 0 0.8rem 0;text-align:right;">Subtotal ${amigo.nombre}: <b>${formatARS(calc.montoPropio)}</b></div>`;
+
+    calc.personasACargo.forEach(p => {
+      itemsHtml += `<div style="font-weight:700;margin:0.6rem 0 0.4rem 0;color:#cbd5e1;border-top:1px dashed var(--border-subtle);padding-top:0.6rem;">Abonos de ${p.amigo.nombre}:</div>`;
+      itemsHtml += p.desglose.map(item => `
+        <div class="pase-item-row" style="align-items:center;">
+          <span class="service-pill brand-${item.id}" style="font-size:0.8rem;padding:0.25rem 0.65rem;">
+            ${item.icono} ${item.nombre}
+          </span>
+          <b style="font-size:1rem;color:#f8fafc;font-variant-numeric:tabular-nums;">${formatARS(item.monto)}</b>
+        </div>
+      `).join('');
+      itemsHtml += `<div style="font-size:0.85rem;color:#94a3b8;margin:0.2rem 0 0.4rem 0;text-align:right;">Subtotal ${p.amigo.nombre}: <b>${formatARS(p.monto)}</b></div>`;
+    });
+  } else {
+    itemsHtml += `<div style="font-weight:700;margin-bottom:0.4rem;color:#cbd5e1;">Abonos de ${amigo.nombre}:</div>`;
+    itemsHtml += calc.desglose.map(item => `
+      <div class="pase-item-row" style="align-items:center;">
+        <span class="service-pill brand-${item.id}" style="font-size:0.8rem;padding:0.25rem 0.65rem;">
+          ${item.icono} ${item.nombre}
+        </span>
+        <b style="font-size:1rem;color:#f8fafc;font-variant-numeric:tabular-nums;">${formatARS(item.monto)}</b>
+      </div>
+    `).join('');
+  }
 
   paseView.innerHTML = `
     <div class="pase-wrapper">
@@ -774,6 +916,23 @@ function abrirModalEditarAmigo(amigoId) {
     srvContainer.appendChild(label);
   });
 
+  // Selector de pagador responsable
+  const selPagador = document.getElementById('edit-friend-pagador');
+  if (selPagador) {
+    selPagador.innerHTML = '<option value="">Paga él mismo (por defecto)</option>';
+    appState.amigos.forEach(a => {
+      if (a.id !== amigoId) {
+        const opt = document.createElement('option');
+        opt.value = a.id;
+        opt.textContent = a.nombre;
+        if (amigo.pagadorId === a.id) {
+          opt.selected = true;
+        }
+        selPagador.appendChild(opt);
+      }
+    });
+  }
+
   abrirModal('modal-amigo');
 }
 
@@ -782,6 +941,17 @@ function abrirModalNuevoAmigo() {
   document.getElementById('edit-friend-name').value = '';
   document.getElementById('edit-friend-phone').value = '';
   document.getElementById('edit-friend-custom-price').value = '';
+
+  const selPagador = document.getElementById('edit-friend-pagador');
+  if (selPagador) {
+    selPagador.innerHTML = '<option value="">Paga él mismo (por defecto)</option>';
+    appState.amigos.forEach(a => {
+      const opt = document.createElement('option');
+      opt.value = a.id;
+      opt.textContent = a.nombre;
+      selPagador.appendChild(opt);
+    });
+  }
 
   const srvContainer = document.getElementById('edit-friend-services');
   srvContainer.innerHTML = '';
@@ -889,6 +1059,9 @@ document.addEventListener('DOMContentLoaded', () => {
       selectedServices.push(cb.value);
     });
 
+    const pagadorRaw = document.getElementById('edit-friend-pagador') ? document.getElementById('edit-friend-pagador').value : null;
+    const pagadorId = pagadorRaw || null;
+
     if (id) {
       // Editar existente
       const amigo = appState.amigos.find(a => a.id === id);
@@ -897,6 +1070,7 @@ document.addEventListener('DOMContentLoaded', () => {
         amigo.telefono = telefono;
         amigo.servicios = selectedServices;
         amigo.precioPersonalizado = precioPersonalizado;
+        amigo.pagadorId = pagadorId;
       }
     } else {
       // Crear nuevo
@@ -909,6 +1083,7 @@ document.addEventListener('DOMContentLoaded', () => {
         servicios: selectedServices,
         precioPersonalizado,
         pagado: false,
+        pagadorId,
         token
       });
     }

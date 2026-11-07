@@ -1,9 +1,9 @@
-const CACHE_NAME = 'abonos-streaming-v2.3';
+const CACHE_NAME = 'abonos-streaming-v2.4';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
-  './styles.css?v=2.3',
-  './app.js?v=2.3',
+  './styles.css?v=2.4',
+  './app.js?v=2.4',
   './manifest.json',
   './icon.svg'
 ];
