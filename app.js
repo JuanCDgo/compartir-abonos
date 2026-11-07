@@ -255,15 +255,24 @@ function calcularAmigo(amigo) {
 // ==========================================
 // 3. WHATSAPP & ENLACE DE COBRO
 // ==========================================
-function limpiarTelefonoArg(tel) {
-  let limpio = (tel || '').replace(/\D/g, '');
-  if (limpio.startsWith('0')) limpio = limpio.substring(1);
-  if (limpio.startsWith('15')) limpio = limpio.substring(2);
-  if (!limpio.startsWith('549')) {
-    limpio = '549' + limpio;
+function formatArgentineWhatsApp(rawPhone) {
+  let cleaned = String(rawPhone || '').replace(/\D/g, '');
+  if (!cleaned) return '';
+  if (cleaned.startsWith('549')) return cleaned;
+  if (cleaned.startsWith('54')) {
+    cleaned = cleaned.substring(2);
+    if (!cleaned.startsWith('9')) cleaned = '9' + cleaned;
+    return '54' + cleaned;
   }
-  return limpio;
+  if (cleaned.startsWith('15') && cleaned.length === 10) {
+    cleaned = cleaned.substring(2);
+  }
+  if (!cleaned.startsWith('9')) {
+    cleaned = '9' + cleaned;
+  }
+  return '54' + cleaned;
 }
+const limpiarTelefonoArg = formatArgentineWhatsApp;
 
 function generarMensajeWhatsApp(amigo) {
   const calculo = calcularAmigo(amigo);
@@ -516,8 +525,8 @@ function renderAmigos() {
     ` : '';
 
     const waMsg = generarMensajeWhatsApp(amigo);
-    const telLimpio = limpiarTelefonoArg(amigo.telefono);
-    const waUrl = `https://wa.me/${telLimpio}?text=${waMsg}`;
+    const telLimpio = formatArgentineWhatsApp(amigo.telefono);
+    const waUrl = `https://api.whatsapp.com/send?phone=${telLimpio}&text=${encodeURIComponent(waMsg)}`;
 
     const pagador = amigo.pagadorId ? appState.amigos.find(p => p.id === amigo.pagadorId) : null;
     const tieneACargo = calc.personasACargo && calc.personasACargo.length > 0;

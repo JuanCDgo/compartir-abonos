@@ -11,11 +11,11 @@
   --border-medium: rgba(255, 255, 255, 0.14);
   --border-glow: rgba(124, 58, 237, 0.35);
 
-  /* Acentos de marca */
-  --accent-purple: #8b5cf6;
-  --accent-indigo: #6366f1;
-  --accent-gradient: linear-gradient(135deg, #7c3aed 0%, #4f46e5 50%, #3b82f6 100%);
-  --accent-glow: 0 0 25px rgba(124, 58, 237, 0.4);
+  /* Acentos de marca Anti-VibeCoding: Índigo / Slate sobrio */
+  --accent-purple: #6366f1;
+  --accent-indigo: #4f46e5;
+  --accent-gradient: #4f46e5;
+  --accent-glow: none;
 
   /* Finanzas & Estados */
   --money-emerald: #10b981;
@@ -54,10 +54,6 @@ body {
   min-height: 100vh;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
-  background-image: 
-    radial-gradient(circle at 15% 10%, rgba(124, 58, 237, 0.12) 0%, transparent 35%),
-    radial-gradient(circle at 85% 85%, rgba(59, 130, 246, 0.08) 0%, transparent 40%);
-  background-attachment: fixed;
 }
 
 .container {
@@ -94,7 +90,7 @@ header.app-header::after {
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.5), transparent);
+  background: var(--border-subtle);
 }
 
 .brand-wrapper {
@@ -107,8 +103,8 @@ header.app-header::after {
   width: 54px;
   height: 54px;
   border-radius: var(--radius-md);
-  background: linear-gradient(135deg, #1e1b4b 0%, #172554 100%);
-  border: 1px solid rgba(139, 92, 246, 0.3);
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -121,9 +117,7 @@ header.app-header::after {
   font-size: 1.45rem;
   font-weight: 800;
   letter-spacing: -0.03em;
-  background: linear-gradient(180deg, #ffffff 30%, #cbd5e1 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: #ffffff;
 }
 
 .brand-subtitle {
@@ -314,13 +308,13 @@ header.app-header::after {
 }
 
 .btn-primary {
-  background: var(--accent-gradient);
+  background: var(--accent-indigo);
   color: #fff;
-  box-shadow: 0 4px 15px rgba(124, 58, 237, 0.35);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 .btn-primary:hover {
-  filter: brightness(1.15);
-  box-shadow: 0 6px 20px rgba(124, 58, 237, 0.5);
+  background: #4338ca;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
   transform: translateY(-1px);
 }
 
@@ -336,12 +330,12 @@ header.app-header::after {
 }
 
 .btn-success {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: #059669;
   color: #fff;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 .btn-success:hover {
-  filter: brightness(1.12);
+  background: #047857;
 }
 
 .btn-danger-outline {
@@ -412,9 +406,9 @@ header.app-header::after {
   width: 44px;
   height: 44px;
   border-radius: var(--radius-pill);
-  background: linear-gradient(135deg, #312e81 0%, #1e1b4b 100%);
-  color: #a5b4fc;
-  border: 1px solid rgba(165, 180, 252, 0.25);
+  background: var(--bg-surface-elevated);
+  color: #c7d2fe;
+  border: 1px solid var(--border-medium);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -763,11 +757,11 @@ header.app-header::after {
 .pase-wrapper {
   max-width: 440px;
   margin: 2.5rem auto;
-  background: linear-gradient(180deg, #131722 0%, #0e111a 100%);
+  background: var(--bg-surface);
   border: 1px solid var(--border-medium);
   border-radius: var(--radius-lg);
   padding: 2.25rem;
-  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.85);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
@@ -782,8 +776,8 @@ header.app-header::after {
   top: 0;
   left: 0;
   right: 0;
-  height: 4px;
-  background: var(--accent-gradient);
+  height: 3px;
+  background: var(--accent-indigo);
 }
 
 .pase-header {
