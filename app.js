@@ -107,9 +107,17 @@ let appState = loadState();
 function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return JSON.parse(JSON.stringify(DEFAULT_STATE));
+    if (!raw) {
+      const initial = JSON.parse(JSON.stringify(DEFAULT_STATE));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(initial));
+      return initial;
+    }
     const parsed = JSON.parse(raw);
-    return { ...DEFAULT_STATE, ...parsed };
+    return {
+      config: { ...DEFAULT_STATE.config, ...(parsed.config || {}) },
+      servicios: (parsed.servicios && parsed.servicios.length > 0) ? parsed.servicios : DEFAULT_STATE.servicios,
+      amigos: (parsed.amigos && parsed.amigos.length > 0) ? parsed.amigos : DEFAULT_STATE.amigos
+    };
   } catch (e) {
     console.error('Error cargando estado:', e);
     return JSON.parse(JSON.stringify(DEFAULT_STATE));
@@ -775,6 +783,7 @@ function abrirModalNuevoAmigo() {
 // 10. SETUP DE EVENTOS GLOBALES
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
+  appState = loadState();
   renderApp();
 
   // Filtros
