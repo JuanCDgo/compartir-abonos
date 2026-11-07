@@ -271,7 +271,6 @@ function generarMensajeWhatsApp(amigo) {
   const mes = appState.config.mesActual;
   const baseUrl = window.location.origin + window.location.pathname;
   const paseUrl = `${baseUrl}?pase=${amigo.token || amigo.id}`;
-  const linkMercadoPago = `https://link.mercadopago.com.ar/${alias}`;
 
   let texto = `¡Hola ${amigo.nombre}!\n`;
 
@@ -305,8 +304,7 @@ function generarMensajeWhatsApp(amigo) {
     texto += `\n*Total a transferir: ${formatARS(calculo.montoFinal)}*\n\n`;
   }
 
-  texto += `*Pagar directo con Mercado Pago:*\n${linkMercadoPago}\n\n`;
-  texto += `(O transferir al Alias: *${alias}*)\n\n`;
+  texto += `Transferir al Alias Mercado Pago / Banco:\n*${alias}*\n\n`;
   texto += `*Ver Pase Digital y QR:*\n${paseUrl}\n\n`;
   texto += `¡Muchas gracias!`;
 
@@ -660,11 +658,6 @@ function abrirModalQR(amigoId) {
     });
   };
 
-  const btnMpLink = document.getElementById('btn-open-mp-link');
-  if (btnMpLink) {
-    btnMpLink.href = `https://link.mercadopago.com.ar/${alias}`;
-  }
-
   // Botón abrir pase digital
   const btnVerPase = document.getElementById('btn-view-pass');
   btnVerPase.onclick = () => {
@@ -769,12 +762,9 @@ function renderModoPase(token) {
         <div style="font-size:0.8rem;color:var(--text-muted);">Alias para transferir por Mercado Pago / Banco:</div>
         <div class="qr-alias-text" id="pase-alias-text">${alias}</div>
         <div style="display:flex;gap:0.5rem;justify-content:center;flex-wrap:wrap;margin-top:0.5rem;">
-          <button class="btn btn-secondary btn-sm" id="btn-copy-pase-alias">
-            📋 Copiar Alias
+          <button class="btn btn-primary btn-sm" id="btn-copy-pase-alias" style="width:100%;max-width:240px;justify-content:center;">
+            📋 Copiar Alias para Transferir
           </button>
-          <a href="https://link.mercadopago.com.ar/${alias}" target="_blank" class="btn btn-primary btn-sm" style="text-decoration:none;">
-            👉 Pagar con Mercado Pago
-          </a>
         </div>
       </div>
 
