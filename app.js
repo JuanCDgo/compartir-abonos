@@ -280,8 +280,8 @@ function generarMensajeWhatsApp(amigo) {
     const nombres = [amigo.nombre, ...calculo.personasACargo.map(p => p.amigo.nombre)].join(' + ');
     texto += `Te paso el resumen de streaming de *${mes}* (${nombres}):\n\n`;
 
-    // Desglose del titular (Facundo)
-    texto += `👤 ${amigo.nombre}:\n`;
+    // Desglose del titular (Facundo) - 100% libre de emojis para garantizar cero rombos
+    texto += `*${amigo.nombre}:*\n`;
     calculo.desglose.forEach(item => {
       texto += `• ${item.nombre}: ${formatARS(item.monto)}\n`;
     });
@@ -289,7 +289,7 @@ function generarMensajeWhatsApp(amigo) {
 
     // Desglose de cada persona a cargo (Jorge)
     calculo.personasACargo.forEach(p => {
-      texto += `👤 ${p.amigo.nombre}:\n`;
+      texto += `*${p.amigo.nombre}:*\n`;
       p.desglose.forEach(item => {
         texto += `• ${item.nombre}: ${formatARS(item.monto)}\n`;
       });
@@ -305,9 +305,9 @@ function generarMensajeWhatsApp(amigo) {
     texto += `\n*Total a transferir: ${formatARS(calculo.montoFinal)}*\n\n`;
   }
 
-  texto += `👉 Pagar directo con Mercado Pago:\n${linkMercadoPago}\n\n`;
+  texto += `*Pagar directo con Mercado Pago:*\n${linkMercadoPago}\n\n`;
   texto += `(O transferir al Alias: *${alias}*)\n\n`;
-  texto += `📱 Ver Pase Digital y QR:\n${paseUrl}\n\n`;
+  texto += `*Ver Pase Digital y QR:*\n${paseUrl}\n\n`;
   texto += `¡Muchas gracias!`;
 
   return encodeURIComponent(texto);
