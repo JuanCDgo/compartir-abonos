@@ -170,11 +170,20 @@ function calcularAmigo(amigo) {
   const desglose = [];
   let sumaCalculada = 0;
 
+  const tienePersonalizado = amigo.precioPersonalizado !== null && amigo.precioPersonalizado !== undefined && amigo.precioPersonalizado > 0;
+
   amigo.servicios.forEach(srvId => {
     const srv = appState.servicios.find(s => s.id === srvId);
     if (srv) {
-      const cuotaBase = getCuotaServicio(srvId);
-      const cuotaFinal = aplicarRedondeo(cuotaBase, appState.config.modoRedondeo);
+      let cuotaFinal;
+      // Si tiene precio personalizado y 1 solo servicio (como Luis y Noelia con Spotify),
+      // el desglose muestra directamente el precio personalizado acordado.
+      if (tienePersonalizado && amigo.servicios.length === 1) {
+        cuotaFinal = amigo.precioPersonalizado;
+      } else {
+        const cuotaBase = getCuotaServicio(srvId);
+        cuotaFinal = aplicarRedondeo(cuotaBase, appState.config.modoRedondeo);
+      }
       sumaCalculada += cuotaFinal;
       desglose.push({
         id: srv.id,
@@ -185,8 +194,6 @@ function calcularAmigo(amigo) {
     }
   });
 
-  // Si tiene un monto manual personalizado, se respeta
-  const tienePersonalizado = amigo.precioPersonalizado !== null && amigo.precioPersonalizado !== undefined && amigo.precioPersonalizado > 0;
   const montoFinal = tienePersonalizado ? amigo.precioPersonalizado : sumaCalculada;
 
   return {
@@ -215,18 +222,21 @@ function generarMensajeWhatsApp(amigo) {
   const mes = appState.config.mesActual;
   const baseUrl = window.location.origin + window.location.pathname;
   const paseUrl = `${baseUrl}?pase=${amigo.token || amigo.id}`;
+  const linkMercadoPago = `https://link.mercadopago.com.ar/${alias}`;
 
-  let texto = `¡Hola ${amigo.nombre}! 👋\n`;
+  // Formato 100% limpio sin emojis de 4 bytes para evitar rombos corruptos
+  let texto = `¡Hola ${amigo.nombre}!\n`;
   texto += `Te paso el resumen de streaming de *${mes}*:\n\n`;
 
   calculo.desglose.forEach(item => {
     texto += `• ${item.nombre}: ${formatARS(item.monto)}\n`;
   });
 
-  texto += `\n*Total a transferir: ${formatARS(calculo.montoFinal)}*\n`;
-  texto += `Alias MercadoPago: *${alias}*\n\n`;
-  texto += `📱 Podés ver tu pase y código QR acá:\n${paseUrl}\n\n`;
-  texto += `¡Muchas gracias! 🙌`;
+  texto += `\n*Total a transferir: ${formatARS(calculo.montoFinal)}*\n\n`;
+  texto += `👉 Pagar directo con Mercado Pago:\n${linkMercadoPago}\n\n`;
+  texto += `(O transferir al Alias: *${alias}*)\n\n`;
+  texto += `📱 Ver tu Pase Digital y QR:\n${paseUrl}\n\n`;
+  texto += `¡Muchas gracias!`;
 
   return encodeURIComponent(texto);
 }
@@ -536,6 +546,11 @@ function abrirModalQR(amigoId) {
     });
   };
 
+  const btnMpLink = document.getElementById('btn-open-mp-link');
+  if (btnMpLink) {
+    btnMpLink.href = `https://link.mercadopago.com.ar/${alias}`;
+  }
+
   // Botón abrir pase digital
   const btnVerPase = document.getElementById('btn-view-pass');
   btnVerPase.onclick = () => {
@@ -611,9 +626,14 @@ function renderModoPase(token) {
       <div class="qr-alias-box">
         <div style="font-size:0.8rem;color:var(--text-muted);">Alias para transferir por Mercado Pago / Banco:</div>
         <div class="qr-alias-text" id="pase-alias-text">${alias}</div>
-        <button class="btn btn-secondary btn-sm" id="btn-copy-pase-alias" style="margin-top:0.4rem;">
-          📋 Copiar Alias
-        </button>
+        <div style="display:flex;gap:0.5rem;justify-content:center;flex-wrap:wrap;margin-top:0.5rem;">
+          <button class="btn btn-secondary btn-sm" id="btn-copy-pase-alias">
+            📋 Copiar Alias
+          </button>
+          <a href="https://link.mercadopago.com.ar/${alias}" target="_blank" class="btn btn-primary btn-sm" style="text-decoration:none;">
+            👉 Pagar con Mercado Pago
+          </a>
+        </div>
       </div>
 
       <div class="qr-container" id="pase-qr-box"></div>

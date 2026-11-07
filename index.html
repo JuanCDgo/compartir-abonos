@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Abonos Streaming - Gestor de Suscripciones</title>
-  <link rel="stylesheet" href="styles.css?v=2.1">
+  <link rel="stylesheet" href="styles.css?v=2.3">
   <!-- Configuración PWA (Instalable) -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#6366f1">
@@ -134,9 +134,14 @@
         <div class="qr-alias-box">
           <div style="font-size:0.8rem;color:var(--text-muted);">Alias Mercado Pago / Bancario:</div>
           <div class="qr-alias-text" id="qr-modal-alias">jmg2011</div>
-          <button id="btn-copy-alias" class="btn btn-secondary btn-sm" style="margin-top:0.4rem;">
-            📋 Copiar Alias
-          </button>
+          <div style="display:flex;gap:0.5rem;justify-content:center;flex-wrap:wrap;margin-top:0.4rem;">
+            <button id="btn-copy-alias" class="btn btn-secondary btn-sm">
+              📋 Copiar Alias
+            </button>
+            <a id="btn-open-mp-link" href="https://link.mercadopago.com.ar/jmg2011" target="_blank" class="btn btn-primary btn-sm" style="text-decoration:none;">
+              👉 Pagar con Mercado Pago
+            </a>
+          </div>
         </div>
       </div>
       <div class="modal-footer">
@@ -273,6 +278,6 @@
   <div id="app-toast" class="toast"></div>
 
   <!-- Script principal -->
-  <script src="app.js?v=2.1"></script>
+  <script src="app.js?v=2.3"></script>
 </body>
 </html>
